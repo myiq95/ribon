@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'seojae-v15';
+const CACHE_VERSION = 'seojae-v16';
 const CACHE_NAME = `seojae-reader-${CACHE_VERSION}`;
 
 // 앱이 오프라인에서도 완전히 동작하도록 설치 시점에 모두 캐시해 둔다.
