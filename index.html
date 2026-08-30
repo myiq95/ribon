@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>서재 · 프리미엄 리더</title>
+<meta name="description" content="TXT · MD · DOCX를 오프라인에서 읽는 프리미엄 독서 앱">
+<meta name="theme-color" content="#a8823f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="서재">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<link rel="stylesheet" href="./fonts/fonts.css">
+<script src="./vendor/mammoth.browser.min.js"></script>
+<style>
+  :root{
+    --ivory:#faf7f2;
+    --ivory-deep:#f1ece1;
+    --ink:#2b2b2b;
+    --ink-soft:#6b6459;
+    --brass:#a8823f;
+    --brass-deep:#8a6a2f;
+    --brass-bright:#c9a35d;
+    --hairline: rgba(43,43,43,0.13);
+    --shadow-col: rgba(60,45,20,0.18);
+    --panel: #ffffff;
+    --danger:#a4453a;
+    --radius: 3px;
+    --toolbar-h: 56px;
+    --bottombar-h: 34px;
+    --page-w: min(720px, 100% - 48px);
+    --content-fs: 19px;
+    --content-lh: 1.78;
+    --transition-speed: 0.62s;
+  }
+  html[data-theme="dark"]{
+    --ivory:#1b1815;
+    --ivory-deep:#221e19;
+    --ink:#e9e2d3;
+    --ink-soft:#a89d89;
+    --brass:#c9a35d;
+    --brass-deep:#9c7a3c;
+    --brass-bright:#e0bd7c;
+    --hairline: rgba(233,226,211,0.14);
+    --shadow-col: rgba(0,0,0,0.55);
+    --panel:#242019;
+  }
+  /* ---- 애플 북스풍 테마 ---- */
+  html[data-app-theme="apple"]{
+    --ivory:#ffffff;
+    --ivory-deep:#f5f5f7;
+    --ink:#1d1d1f;
+    --ink-soft:#86868b;
+    --brass:#0a84ff;
+    --brass-deep:#0060df;
+    --brass-bright:#409cff;
+    --hairline: rgba(0,0,0,0.09);
+    --shadow-col: rgba(0,0,0,0.14);
+    --panel:#ffffff;
+  }
+  html[data-app-theme="apple"][data-theme="dark"]{
+    --ivory:#000000;
+    --ivory-deep:#1c1c1e;
+    --ink:#f2f2f7;
+    --ink-soft:#8e8e93;
+    --brass:#0a84ff;
+    --brass-deep:#409cff;
+    --brass-bright:#5ac8fa;
+    --hairline: rgba(255,255,255,0.14);
+    --shadow-col: rgba(0,0,0,0.6);
+    --panel:#1c1c1e;
+  }
+  html[data-app-theme="apple"] body{ font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans KR', sans-serif; }
+  html[data-app-theme="apple"] .page-content{ font-family:ui-serif, 'Noto Serif KR', Georgia, serif; letter-spacing:0; }
+  html[data-app-theme="apple"] .page-content p{ text-align:left; }
+  html[data-app-theme="apple"] .brand-name{ font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; font-weight:700; }
+  @media (prefers-reduced-motion: reduce){ :root{ --transition-speed: 0.001s; } }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; overscroll-behavior:none; }
+  body{
+    background:var(--ivory);
+    color:var(--ink);
+    font-family:'Noto Serif KR', serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+    overscroll-behavior:none;
+    transition:background .35s ease, color .35s ease;
+  }
+  button{ font-family:'Noto Sans KR', sans-serif; border:none; background:none; cursor:pointer; color:inherit; }
+  button:focus-visible, [tabindex]:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+  .hidden{ display:none !important; }
+
+  /* ---------- App shell ---------- */
+  #app{
+    position:relative; height:100vh; height:100dvh; display:flex; flex-direction:column;
+    padding-top:env(safe-area-inset-top, 0px);
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+    padding-left:env(safe-area-inset-left, 0px);
+    padding-right:env(safe-area-inset-right, 0px);
+  }
+
+  /* ---------- Top toolbar ---------- */
+  #toolbar{
+    height:var(--toolbar-h);
+    flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 10px;
+    background:var(--ivory);
+    border-bottom:1px solid var(--hairline);
+    overflow:hidden;
+    transition:height .38s ease, padding .38s ease, border-color .38s ease, background .35s ease;
+    z-index:40; position:relative;
+  }
+  #toolbar.immersive-hide{ height:0; padding-top:0; padding-bottom:0; border-bottom-color:transparent; }
+  .tb-group{ display:flex; align-items:center; gap:2px; }
+  .brand{ display:flex; align-items:center; gap:8px; padding:0 8px; }
+  .brand svg{ width:20px; height:20px; color:var(--brass); flex:0 0 auto; }
+  .brand-name{ font-family:'Nanum Myeongjo', serif; font-weight:800; font-size:16px; letter-spacing:.02em; }
+  .book-title-tb{ font-family:'Noto Sans KR',sans-serif; font-size:12px; color:var(--ink-soft); max-width:34vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    color:var(--ink); transition:background .2s ease, color .2s ease;
+    position:relative; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .icon-btn svg{ width:19px; height:19px; }
+  .icon-btn:hover{ background:var(--ivory-deep); }
+  .icon-btn.active{ color:var(--brass-deep); }
+  .icon-btn.active::after{
+    content:''; position:absolute; bottom:4px; left:50%; transform:translateX(-50%);
+    width:4px; height:4px; border-radius:50%; background:var(--brass);
+  }
+
+  /* ---------- Reading viewport ---------- */
+  #viewport{
+    flex:1 1 auto; position:relative; overflow:hidden;
+    perspective:1800px; -webkit-perspective:1800px;
+    display:flex; align-items:stretch; justify-content:center;
+  }
+  #stage{ position:relative; width:100%; height:100%; transform-style:preserve-3d; }
+
+  .page-face{
+    position:absolute; inset:0; display:flex; justify-content:center;
+    background:var(--ivory); backface-visibility:hidden;
+  }
+  .page-inner{
+    width:var(--page-w); max-width:720px; height:100%;
+    display:flex; flex-direction:column;
+  }
+  .page-content{
+    flex:1 1 auto; overflow:hidden; padding:20px 4px 8px;
+    font-size:var(--content-fs); line-height:var(--content-lh);
+    color:var(--ink); letter-spacing:.01em;
+  }
+  .page-content p{ margin:0 0 1.05em; text-align:justify; word-break:keep-all; }
+  .page-content .chapter-heading{
+    font-family:'Nanum Myeongjo', serif; font-weight:700;
+    font-size:calc(var(--content-fs) + 6px); line-height:1.4;
+    margin:8px 0 26px; color:var(--ink);
+    padding-bottom:14px; border-bottom:1px solid var(--hairline);
+  }
+  .page-content .scene-divider{
+    text-align:center; color:var(--brass); letter-spacing:.6em; margin:1.6em 0; font-size:13px;
+  }
+  html[data-app-theme="apple"] .page-content .chapter-heading{
+    font-family:-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Noto Sans KR', sans-serif;
+    font-weight:700; border-bottom:none; padding-bottom:0; text-align:left;
+  }
+  html[data-app-theme="apple"] .page-content .scene-divider{
+    color:var(--ink-soft); letter-spacing:.3em; font-size:11px;
+  }
+  /* click zones for page turning */
+  .tap-zone{ position:absolute; top:76px; bottom:0; width:30%; z-index:5; }
+  .tap-zone.left{ left:0; } .tap-zone.right{ right:0; }
+  .tap-zone.center{ left:30%; right:30%; }
+
+  /* clone used for the flip animation */
+  .flip-clone{
+    position:absolute; inset:0; z-index:20; transform-origin:left center;
+    background:var(--ivory);
+    box-shadow:0 0 0 rgba(0,0,0,0);
+    transition:transform var(--transition-speed) cubic-bezier(.4,.07,.2,1), box-shadow var(--transition-speed) ease;
+  }
+  .flip-clone::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(90deg, rgba(0,0,0,0) 0%, var(--shadow-col) 100%);
+    opacity:0; transition:opacity var(--transition-speed) ease;
+  }
+  .flip-clone.flip-next{ transform-origin:left center; }
+  .flip-clone.flip-next.animate{ transform:rotateY(-140deg); box-shadow:24px 0 40px var(--shadow-col); }
+  .flip-clone.flip-next.animate::after{ opacity:1; }
+  .flip-clone.flip-prev{ transform-origin:right center; }
+  .flip-clone.flip-prev.animate{ transform:rotateY(140deg); box-shadow:-24px 0 40px var(--shadow-col); }
+  .flip-clone.flip-prev.animate::after{ opacity:1; }
+
+  /* gilded bookmark ribbon */
+  .ribbon-hit{
+    position:absolute; top:0; right:14px; width:60px; height:70px; z-index:30;
+    display:flex; justify-content:center; align-items:flex-start;
+    background:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  }
+  .ribbon-graphic{
+    width:26px; height:18px;
+    background:linear-gradient(180deg, var(--brass-bright), var(--brass-deep));
+    clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);
+    transition:height .3s cubic-bezier(.34,1.4,.64,1), opacity .2s ease;
+    box-shadow:0 2px 6px rgba(0,0,0,.25);
+    opacity:.85;
+  }
+  .ribbon-hit:active .ribbon-graphic{ opacity:1; }
+  .ribbon-hit.on .ribbon-graphic{ height:54px; opacity:1; }
+  .bookmark-icon{ display:none; width:21px; height:25px; margin-top:12px; fill:none; stroke:var(--ink-soft); stroke-width:1.6; transition:fill .2s ease, stroke .2s ease; }
+  html[data-app-theme="apple"] .ribbon-graphic{ display:none; }
+  html[data-app-theme="apple"] .bookmark-icon{ display:block; }
+  html[data-app-theme="apple"] .ribbon-hit.on .bookmark-icon{ fill:var(--brass); stroke:var(--brass); }
+
+  /* ---------- Bottom bar ---------- */
+  #bottombar{
+    height:var(--bottombar-h);
+    flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:14px;
+    background:var(--ivory); border-top:1px solid var(--hairline);
+    overflow:hidden;
+    transition:height .38s ease, padding .38s ease, border-color .38s ease, background .35s ease;
+    font-family:'Noto Sans KR',sans-serif;
+  }
+  #bottombar.immersive-hide{ height:0; padding-top:0; padding-bottom:0; border-top-color:transparent; }
+  .page-indicator-wrap{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .page-indicator{ font-size:12.5px; color:var(--ink-soft); min-width:160px; text-align:center; letter-spacing:.02em; }
+  .progress-track{ display:none; }
+  html[data-app-theme="apple"] .progress-track{ display:block; width:130px; height:3px; border-radius:2px; background:var(--hairline); overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:var(--brass); border-radius:2px; transition:width .3s ease; }
+  .page-indicator b{ color:var(--brass-deep); font-weight:600; }
+  .nav-arrow{ width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--ink); }
+  .nav-arrow svg{ width:16px; height:16px; }
+  .nav-arrow:hover{ background:var(--ivory-deep); }
+  .nav-arrow:disabled{ opacity:.3; cursor:default; }
+  .nav-arrow:disabled:hover{ background:none; }
+
+  /* ---------- Empty state ---------- */
+  #empty-state{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    padding:32px; text-align:center; z-index:2; gap:18px;
+  }
+  #empty-state.dragover .drop-frame{ border-color:var(--brass); background:var(--ivory-deep); }
+  .drop-frame{
+    width:min(320px, 84vw); padding:38px 22px; border:1.5px dashed var(--hairline); border-radius:8px;
+    display:flex; flex-direction:column; align-items:center; gap:14px; cursor:pointer;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .drop-frame svg{ width:40px; height:40px; color:var(--brass); }
+  .drop-frame h1{ font-family:'Nanum Myeongjo',serif; font-size:21px; margin:0; font-weight:700; }
+  .drop-frame p{ font-family:'Noto Sans KR',sans-serif; font-size:12.5px; color:var(--ink-soft); margin:0; line-height:1.6; }
+  .drop-frame .formats{ font-size:11px; letter-spacing:.12em; color:var(--brass-deep); font-family:'Noto Sans KR',sans-serif; }
+
+  /* ---------- Popovers / Drawers ---------- */
+  .overlay-scrim{ position:fixed; inset:0; background:rgba(20,15,8,.34); z-index:49; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+  .overlay-scrim.show{ opacity:1; pointer-events:auto; }
+
+  .popover{
+    position:absolute; top:calc(var(--toolbar-h) + 6px); background:var(--panel); color:var(--ink);
+    border:1px solid var(--hairline); border-radius:10px; box-shadow:0 12px 30px rgba(30,20,5,.18);
+    padding:14px; z-index:55; width:220px; font-family:'Noto Sans KR',sans-serif;
+    opacity:0; transform:translateY(-6px); pointer-events:none; transition:opacity .18s ease, transform .18s ease;
+  }
+  .popover.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .popover-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .popover-row:last-child{ margin-bottom:0; }
+  .popover-label{ font-size:12.5px; color:var(--ink-soft); }
+  .stepper{ display:flex; align-items:center; gap:0; border:1px solid var(--hairline); border-radius:20px; overflow:hidden; }
+  .stepper button{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .stepper button:hover{ background:var(--ivory-deep); }
+  .stepper span{ width:30px; text-align:center; font-size:12px; color:var(--ink-soft); }
+  .toggle{ width:40px; height:22px; border-radius:20px; background:var(--hairline); position:relative; transition:background .2s ease; }
+  .toggle::after{ content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--panel); box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s ease; }
+  .toggle.on{ background:var(--brass); }
+  .toggle.on::after{ transform:translateX(18px); }
+  .rate-slider{ width:100%; accent-color:var(--brass); }
+  .seg-control{ display:flex; border:1px solid var(--hairline); border-radius:10px; overflow:hidden; }
+  .seg-btn{ flex:1; padding:7px 0; font-size:12px; color:var(--ink-soft); background:var(--ivory-deep); transition:background .15s ease, color .15s ease; }
+  .seg-btn.active{ background:var(--panel); color:var(--ink); font-weight:600; }
+
+  .drawer{
+    position:fixed; top:0; bottom:0; width:min(320px,84vw); background:var(--panel); z-index:56;
+    box-shadow:0 0 40px rgba(0,0,0,.25); transition:transform .32s cubic-bezier(.4,.07,.2,1);
+    display:flex; flex-direction:column; font-family:'Noto Sans KR',sans-serif;
+  }
+  #toc-drawer{ left:0; transform:translateX(-104%); }
+  #toc-drawer.show{ transform:translateX(0); }
+  #bookmark-drawer{ right:0; transform:translateX(104%); }
+  #bookmark-drawer.show{ transform:translateX(0); }
+  .drawer-head{ padding:calc(20px + env(safe-area-inset-top, 0px)) 18px 14px; border-bottom:1px solid var(--hairline); }
+  .drawer-head h2{ font-family:'Nanum Myeongjo',serif; font-size:17px; margin:0 0 4px; font-weight:700; }
+  .drawer-head p{ margin:0; font-size:11.5px; color:var(--ink-soft); }
+  .drawer-body{ flex:1; overflow-y:auto; padding:6px 0; }
+  .toc-item{
+    display:flex; align-items:baseline; gap:8px; width:100%; text-align:left; padding:11px 18px;
+    font-size:14px; color:var(--ink); border-bottom:1px dotted transparent;
+  }
+  .toc-item:hover{ background:var(--ivory-deep); }
+  .toc-item .dots{ flex:1; border-bottom:1px dotted var(--hairline); height:1px; margin-bottom:5px; }
+  .toc-item .pg{ font-size:11.5px; color:var(--ink-soft); }
+  .toc-item.current{ color:var(--brass-deep); font-weight:600; }
+  html[data-app-theme="apple"] .toc-item{ justify-content:space-between; border-radius:8px; margin:0 8px; width:calc(100% - 16px); }
+  html[data-app-theme="apple"] .toc-item .dots{ display:none; }
+  html[data-app-theme="apple"] .toc-item.current{ background:var(--ivory-deep); color:var(--ink); }
+  .bm-item{ padding:12px 18px; border-bottom:1px solid var(--hairline); cursor:pointer; display:flex; gap:10px; align-items:flex-start; }
+  .bm-item:hover{ background:var(--ivory-deep); }
+  .bm-ribbon-ico{ width:12px; height:16px; background:linear-gradient(180deg,var(--brass-bright),var(--brass-deep)); clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%); flex:0 0 auto; margin-top:2px; }
+  .bm-text{ flex:1; }
+  .bm-snippet{ font-size:12.5px; line-height:1.5; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .bm-meta{ font-size:10.5px; color:var(--ink-soft); margin-top:4px; }
+  .bm-del{ width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex:0 0 auto; }
+  .bm-del:hover{ background:var(--ivory-deep); color:var(--danger); }
+  .drawer-empty{ padding:40px 24px; text-align:center; color:var(--ink-soft); font-size:12.5px; line-height:1.7; }
+
+  /* ---------- Loading overlay ---------- */
+  #loading{
+    position:absolute; inset:0; background:var(--ivory); z-index:60; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; transition:opacity .3s ease;
+  }
+  .spinner{ width:26px; height:26px; border-radius:50%; border:2px solid var(--hairline); border-top-color:var(--brass); animation:spin 0.85s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #loading p{ font-family:'Noto Sans KR',sans-serif; font-size:12.5px; color:var(--ink-soft); }
+
+  input[type="file"]{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; opacity:0;
+  }
+
+  /* TTS play button state */
+  .tts-playing svg{ animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+  .tts-highlight{ background:linear-gradient(180deg, transparent 62%, rgba(168,130,63,.28) 62%); border-radius:2px; }
+
+  @media (max-width:520px){
+    .book-title-tb{ display:none !important; }
+    :root{ --page-w: min(720px, 100% - 30px); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <div class="tb-group">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5V22h14a2 2 0 0 0 2-2V19"/></svg>
+        <span class="brand-name">서재</span>
+      </div>
+      <span class="book-title-tb" id="tb-book-title"></span>
+    </div>
+    <div class="tb-group">
+      <label class="icon-btn" id="btn-open" for="file-input" title="파일 열기" aria-label="파일 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+      </label>
+      <button class="icon-btn" id="btn-toc" title="목차" aria-label="목차" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-bookmarks" title="책갈피" aria-label="책갈피 목록" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4-6 4V4Z"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-tts" title="읽어주기" aria-label="소리내어 읽기" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-aa" title="글자 크기 · 모드" aria-label="설정" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18 9 6h1l5 12M5.5 14h7.5"/><path d="M16 18l3-7 3 7M17 15.5h4"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Reading viewport -->
+  <div id="viewport">
+    <div id="stage">
+      <div class="page-face" id="page-face">
+        <div class="page-inner">
+          <button class="ribbon-hit" id="ribbon" aria-label="책갈피 표시">
+            <span class="ribbon-graphic"></span>
+            <svg class="bookmark-icon" viewBox="0 0 24 28"><path d="M2 2h20v24l-10-7-10 7V2Z"/></svg>
+          </button>
+          <div class="page-content" id="page-content"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tap-zone left" id="tap-left"></div>
+    <div class="tap-zone center" id="tap-center"></div>
+    <div class="tap-zone right" id="tap-right"></div>
+
+    <div id="empty-state">
+      <label class="drop-frame" id="drop-frame" for="file-input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5v14Z"/><path d="M4 19.5V22h14a2 2 0 0 0 2-2V19"/><path d="M9 8h6M9 11h6M9 14h3"/></svg>
+        <h1>읽을 책을 불러오세요</h1>
+        <p>파일을 이곳에 끌어다 놓거나<br>클릭해서 선택해 주세요</p>
+        <span class="formats">TXT &nbsp;·&nbsp; MD &nbsp;·&nbsp; DOCX</span>
+      </label>
+    </div>
+
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">책장을 정리하는 중…</p>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottombar">
+    <button class="nav-arrow" id="btn-prev" disabled title="이전 페이지">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="page-indicator-wrap">
+      <div class="page-indicator" id="page-indicator">파일을 불러오면 시작돼요</div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <button class="nav-arrow" id="btn-next" disabled title="다음 페이지">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <input type="file" id="file-input" accept=".txt,.md,.markdown,.docx">
+
+  <!-- Aa popover -->
+  <div class="popover" id="popover-aa">
+    <div class="popover-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+      <span class="popover-label">테마</span>
+      <div class="seg-control" id="theme-seg">
+        <button class="seg-btn active" data-theme-choice="classic">클래식</button>
+        <button class="seg-btn" data-theme-choice="apple">애플 북스</button>
+      </div>
+    </div>
+    <div class="popover-row">
+      <span class="popover-label">글자 크기</span>
+      <div class="stepper">
+        <button id="fs-minus">가</button>
+        <span id="fs-val">19</span>
+        <button id="fs-plus" style="font-size:16px;">가</button>
+      </div>
+    </div>
+    <div class="popover-row">
+      <span class="popover-label">다크 모드</span>
+      <div class="toggle" id="toggle-dark"></div>
+    </div>
+    <div class="popover-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+      <span class="popover-label">읽어주는 속도</span>
+      <input type="range" class="rate-slider" id="rate-slider" min="0.6" max="1.6" step="0.1" value="1">
+    </div>
+  </div>
+
+  <!-- TOC drawer -->
+  <div class="drawer" id="toc-drawer">
+    <div class="drawer-head">
+      <h2>목차</h2>
+      <p id="toc-book-title">&nbsp;</p>
+    </div>
+    <div class="drawer-body" id="toc-list"></div>
+  </div>
+
+  <!-- Bookmark drawer -->
+  <div class="drawer" id="bookmark-drawer">
+    <div class="drawer-head">
+      <h2>책갈피</h2>
+      <p>탭하면 해당 페이지로 이동해요</p>
+    </div>
+    <div class="drawer-body" id="bookmark-list"></div>
+  </div>
+
+  <div class="overlay-scrim" id="scrim"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   상태
+========================================================= */
+const state = {
+  bookId: null,
+  bookTitle: '',
+  blocks: [],
+  units: [],
+  pages: [],
+  chapterPageMap: {},
+  chapters: [],
+  currentPage: 0,
+  fontSize: 19,
+  dark: false,
+  appTheme: 'classic',
+  bookmarks: [],
+  animating: false,
+  immersive: false,
+  speaking: false,
+  paused: false,
+  rate: 1,
+};
+
+const el = (id) => document.getElementById(id);
+const $viewport = el('viewport');
+const $pageContent = el('page-content');
+const $pageFace = el('page-face');
+const $stage = el('stage');
+const $emptyState = el('empty-state');
+const $loading = el('loading');
+const $loadingText = el('loading-text');
+const $toolbar = el('toolbar');
+const $bottombar = el('bottombar');
+const $pageIndicator = el('page-indicator');
+const $btnPrev = el('btn-prev');
+const $btnNext = el('btn-next');
+const $ribbon = el('ribbon');
+const $fileInput = el('file-input');
+
+// 페이지 계산에 쓰는 폰트를 미리 명시적으로 요청해 둔다. document.fonts.ready만
+// 믿으면, 해당 폰트를 실제로 "사용"하기 전까진 애초에 로딩이 시작되지 않아
+// 첫 페이지 계산 때 대체 폰트 기준으로 잘못 측정되는 문제가 있었다.
+const fontWarmup = (document.fonts && document.fonts.load)
+  ? Promise.all([
+      document.fonts.load('400 19px "Noto Serif KR"'),
+      document.fonts.load('700 19px "Nanum Myeongjo"'),
+    ]).catch(() => {})
+  : Promise.resolve();
+
+/* =========================================================
+   유틸
+========================================================= */
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function hashText(str){
+  let h = 5381;
+  for(let i=0;i<str.length;i++){ h = ((h*33) ^ str.charCodeAt(i)) >>> 0; }
+  return h.toString(36) + '_' + str.length;
+}
+function showLoading(msg){ $loadingText.textContent = msg || '책장을 정리하는 중…'; $loading.classList.remove('hidden'); }
+function hideLoading(){ $loading.classList.add('hidden'); }
+
+/* =========================================================
+   1. 파일 로딩 및 파싱 (열기 버튼·드롭 영역은 label[for]로 input과
+      네이티브 연결되어 있어 iOS 홈 화면 앱에서도 안정적으로 열려요)
+========================================================= */
+$fileInput.addEventListener('change', (e) => {
+  if(e.target.files && e.target.files[0]) loadFile(e.target.files[0]);
+  $fileInput.value = '';
+});
+;['dragover','dragenter'].forEach(evt => $emptyState.addEventListener(evt, (e)=>{ e.preventDefault(); $emptyState.classList.add('dragover'); }));
+;['dragleave','drop'].forEach(evt => $emptyState.addEventListener(evt, (e)=>{ e.preventDefault(); $emptyState.classList.remove('dragover'); }));
+$emptyState.addEventListener('drop', (e)=>{
+  e.preventDefault();
+  if(e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+async function loadFile(file){
+  const name = file.name;
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  showLoading('책을 여는 중…');
+  try{
+    let blocks, rawTextForHash;
+    if(ext === 'docx'){
+      const buf = await file.arrayBuffer();
+      const styleMap = [
+        "p[style-name='Title'] => h1:fresh",
+        "p[style-name='Subtitle'] => h3:fresh",
+        "p[style-name='Chapter Heading'] => h2:fresh",
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh",
+        "p[style-name='Heading 3'] => h3:fresh",
+        "p[style-name='Scene Note'] => hr:fresh"
+      ];
+      if(typeof mammoth === 'undefined'){
+        throw new Error('MAMMOTH_MISSING');
+      }
+      const result = await mammoth.convertToHtml({ arrayBuffer: buf }, { styleMap });
+      blocks = htmlToBlocks(result.value);
+      rawTextForHash = blocks.map(b=>b.text||'').join('\n').slice(0,4000);
+    } else if(ext === 'md' || ext === 'markdown'){
+      const text = await file.text();
+      blocks = parseMarkdown(text);
+      rawTextForHash = text.slice(0,4000);
+    } else {
+      const text = await file.text();
+      blocks = parseTxt(text);
+      rawTextForHash = text.slice(0,4000);
+    }
+
+    if(!blocks.length){
+      throw new Error('EMPTY');
+    }
+
+    state.blocks = blocks;
+    state.bookTitle = deriveTitle(name, blocks);
+    state.bookId = hashText(rawTextForHash + '::' + rawTextForHash.length);
+    state.units = flattenToUnits(blocks);
+    state.chapters = blocks.map((b, bi) => ({ ...b, bi })).filter(b => b.type === 'heading');
+
+    stopSpeaking();
+    el('tb-book-title').textContent = state.bookTitle;
+    el('toc-book-title').textContent = state.bookTitle;
+    document.title = state.bookTitle + ' · 서재';
+
+    $emptyState.classList.add('hidden');
+    ['btn-toc','btn-bookmarks','btn-tts','btn-aa'].forEach(id => el(id).disabled = false);
+
+    await loadBookmarksForCurrentBook();
+    await paginateAndRestore();
+
+    // 책을 열면 기본적으로 몰입 모드로 시작해서 처음부터 최대한 넓게 보여준다.
+    // (화면 중앙을 탭하면 언제든 컨트롤이 다시 나타난다.)
+    state.immersive = true;
+    $toolbar.classList.add('immersive-hide');
+    $bottombar.classList.add('immersive-hide');
+    await new Promise(r => setTimeout(r, 420));
+    await paginateAndRestore();
+  } catch(err){
+    console.error(err);
+    if(err && err.message === 'MAMMOTH_MISSING'){
+      alert('DOCX 변환 도구를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.');
+    } else if(err && err.message === 'EMPTY'){
+      alert('파일에서 읽을 수 있는 글이 없어요. 다른 파일을 선택해 주세요.');
+    } else {
+      alert('파일을 여는 중 문제가 생겼어요. TXT · MD · DOCX 형식인지 확인해 주세요.');
+    }
+  } finally {
+    hideLoading();
+  }
+}
+
+function deriveTitle(filename, blocks){
+  const h1 = blocks.find(b => b.type==='heading' && b.level<=1);
+  if(h1 && h1.text) return h1.text;
+  return filename.replace(/\.[^.]+$/,'');
+}
+
+/* ---- TXT 파서 ---- */
+function parseTxt(text){
+  const lines = text.replace(/\r\n/g,'\n').split('\n');
+  const headingRe = /^(제?\s?\d+\s?[장화부편회]|chapter\s*\d+|프롤로그|에필로그|서장|외전\s*\d*|막간|작가의\s?말)/i;
+  const blocks = [];
+  let buffer = [];
+  const flush = () => { if(buffer.length){ blocks.push({type:'paragraph', text: buffer.join(' ').trim()}); buffer=[]; } };
+  for(let i=0;i<lines.length;i++){
+    const raw = lines[i];
+    const t = raw.trim();
+    if(t===''){ flush(); continue; }
+    const prevBlank = (i===0) || lines[i-1].trim()==='';
+    const nextBlank = (i===lines.length-1) || lines[i+1].trim()==='';
+    const shortStandalone = t.length<=20 && !/[.,!?"'”’]$/.test(t) && prevBlank && nextBlank;
+    if(headingRe.test(t) || shortStandalone){
+      flush();
+      blocks.push({type:'heading', level:2, text:t});
+      continue;
+    }
+    buffer.push(t);
+  }
+  flush();
+  return blocks;
+}
+
+/* ---- MD 파서 ---- */
+function parseMarkdown(text){
+  const lines = text.replace(/\r\n/g,'\n').split('\n');
+  const blocks = [];
+  let buffer = [];
+  const flush = () => { if(buffer.length){ blocks.push({type:'paragraph', text: buffer.join(' ').trim()}); buffer=[]; } };
+  for(const raw of lines){
+    const t = raw.trim();
+    if(t===''){ flush(); continue; }
+    const h = t.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ flush(); blocks.push({type:'heading', level: Math.min(h[1].length,3), text: cleanInline(h[2])}); continue; }
+    if(/^(-{3,}|\*{3,}|_{3,})$/.test(t)){ flush(); blocks.push({type:'divider'}); continue; }
+    buffer.push(cleanInline(t.replace(/^>+\s?/,'')));
+  }
+  flush();
+  return blocks;
+}
+function cleanInline(s){
+  return s.replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/`(.*?)`/g,'$1').replace(/^-\s+/,'').trim();
+}
+
+/* ---- DOCX(HTML) 파서 ---- */
+function htmlToBlocks(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const blocks = [];
+  Array.from(doc.body.children).forEach(node => {
+    const tag = node.tagName.toLowerCase();
+    if(/^h[1-6]$/.test(tag)){
+      const t = node.textContent.trim();
+      if(t) blocks.push({type:'heading', level: Math.min(parseInt(tag[1],10),3), text:t});
+    } else if(tag === 'hr'){
+      blocks.push({type:'divider'});
+    } else if(tag==='p' || tag==='blockquote' || tag==='li'){
+      const t = node.textContent.trim();
+      if(t) blocks.push({type:'paragraph', text:t});
+    } else if(tag==='table'){
+      const t = node.textContent.trim().replace(/\s+/g,' ');
+      if(t) blocks.push({type:'paragraph', text:t});
+    }
+  });
+  if(!blocks.length){
+    const t = doc.body.textContent.trim();
+    if(t) t.split(/\n{2,}/).forEach(p => { if(p.trim()) blocks.push({type:'paragraph', text:p.trim()}); });
+  }
+  return blocks;
+}
+
+/* =========================================================
+   2. 단위(unit) 분해 & 페이지네이션
+========================================================= */
+function flattenToUnits(blocks){
+  const units = [];
+  blocks.forEach((b, bi) => {
+    if(b.type === 'heading'){
+      units.push({ type:'heading-start', bi, text:b.text, level:b.level });
+    } else if(b.type === 'divider'){
+      units.push({ type:'divider', bi });
+    } else {
+      const words = b.text.split(/\s+/).filter(Boolean);
+      words.forEach(w => units.push({ type:'word', bi, text:w }));
+      units.push({ type:'para-end', bi });
+    }
+  });
+  return units;
+}
+
+function renderUnitsHTML(slice){
+  let html = ''; let open = false;
+  slice.forEach(u => {
+    if(u.type === 'heading-start'){
+      if(open){ html += '</p>'; open=false; }
+      html += `<h2 class="chapter-heading">${escapeHtml(u.text)}</h2>`;
+    } else if(u.type === 'divider'){
+      if(open){ html += '</p>'; open=false; }
+      html += `<div class="scene-divider">&#9670;</div>`;
+    } else if(u.type === 'word'){
+      if(!open){ html += '<p>'; open = true; html += escapeHtml(u.text); }
+      else { html += ' ' + escapeHtml(u.text); }
+    } else if(u.type === 'para-end'){
+      if(open){ html += '</p>'; open=false; }
+    }
+  });
+  if(open) html += '</p>';
+  return html;
+}
+
+function getUnitGroups(slice){
+  const groups = [];
+  let cur = [];
+  slice.forEach(u=>{
+    if(u.type==='heading-start'){ if(cur.length){groups.push(cur.join(' ')); cur=[];} groups.push(u.text); }
+    else if(u.type==='divider'){ if(cur.length){groups.push(cur.join(' ')); cur=[];} }
+    else if(u.type==='word'){ cur.push(u.text); }
+    else if(u.type==='para-end'){ if(cur.length){groups.push(cur.join(' ')); cur=[];} }
+  });
+  if(cur.length) groups.push(cur.join(' '));
+  return groups;
+}
+
+let $measureBox = null;
+function getMeasureBox(){
+  if($measureBox) return $measureBox;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden; pointer-events:none;';
+  const inner = document.createElement('div');
+  inner.className = 'page-content';
+  inner.style.overflow = 'visible';
+  wrap.appendChild(inner);
+  document.body.appendChild(wrap);
+  $measureBox = inner;
+  return inner;
+}
+
+function paginate(units){
+  const measureBox = getMeasureBox();
+  const rect = $pageContent.getBoundingClientRect();
+  measureBox.style.width = rect.width + 'px';
+  const maxHeight = $pageContent.clientHeight - 2; // 여백 보정
+
+  function heightOf(slice){
+    measureBox.innerHTML = renderUnitsHTML(slice);
+    return measureBox.scrollHeight;
+  }
+
+  const pages = [];
+  const chapterPageMap = {};
+  let i = 0;
+  const n = units.length;
+  while(i < n){
+    if(units[i].type === 'heading-start'){ chapterPageMap[units[i].bi] = pages.length; }
+    // hardEnd: 다음 heading-start 전까지
+    let hardEnd = n;
+    const scanStart = (units[i].type==='heading-start') ? i+1 : i;
+    for(let k=scanStart; k<n; k++){ if(units[k].type==='heading-start'){ hardEnd = k; break; } }
+
+    let lo = i+1, hi = hardEnd, best = i+1;
+    // 첫 유닛 하나만으로도 넘치는 예외 처리
+    if(heightOf(units.slice(i, i+1)) > maxHeight){
+      best = i+1;
+    } else {
+      while(lo <= hi){
+        const mid = (lo+hi) >> 1;
+        const h = heightOf(units.slice(i, mid));
+        if(h <= maxHeight){ best = mid; lo = mid+1; } else { hi = mid-1; }
+      }
+    }
+    pages.push(units.slice(i, best));
+    i = best;
+  }
+  if(pages.length === 0) pages.push([]);
+  return { pages, chapterPageMap };
+}
+
+async function paginateAndRestore(){
+  showLoading('페이지를 나누는 중…');
+  // 레이아웃이 완전히 반영되고(프레임 2회) 폰트 로딩까지 끝난 뒤에 측정해야
+  // 실제 화면에 들어가는 글자 수와 페이지 계산이 정확히 맞는다.
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try{ await fontWarmup; } catch(e){ /* 무시 */ }
+  if(document.fonts && document.fonts.ready){
+    try{ await document.fonts.ready; } catch(e){ /* 폰트 로딩 확인 실패 시 그냥 진행 */ }
+  }
+  await new Promise(r => setTimeout(r, 30));
+
+  // 현재 절대 위치 저장(폰트 크기 변경 등 재실행 시 유지하기 위함)
+  let savedAbsUnit = 0;
+  if(state.pages.length && state.pages[state.currentPage] && state.pages[state.currentPage].length){
+    const firstUnit = state.pages[state.currentPage][0];
+    savedAbsUnit = state.units.indexOf(firstUnit);
+  }
+
+  const { pages, chapterPageMap } = paginate(state.units);
+  state.pages = pages;
+  state.chapterPageMap = chapterPageMap;
+
+  // 저장된 절대 위치가 속한 새 페이지 찾기
+  let newPage = 0;
+  let acc = 0;
+  for(let p=0; p<pages.length; p++){
+    if(acc + pages[p].length > savedAbsUnit){ newPage = p; break; }
+    acc += pages[p].length;
+    newPage = p;
+  }
+  state.currentPage = Math.min(newPage, pages.length-1);
+
+  renderCurrentPage();
+  buildTOC();
+  renderBookmarkList();
+  hideLoading();
+  saveLastPosition();
+}
+
+/* =========================================================
+   3. 렌더링 & 페이지 이동
+========================================================= */
+function renderCurrentPage(){
+  const slice = state.pages[state.currentPage] || [];
+  $pageContent.innerHTML = renderUnitsHTML(slice);
+  updateIndicator();
+  updateRibbon();
+  updateNavButtons();
+  updateTOCHighlight();
+}
+
+function updateIndicator(){
+  const total = state.pages.length || 1;
+  const cur = state.currentPage + 1;
+  let chapterTitle = '';
+  for(const ch of state.chapters){
+    if(state.chapterPageMap[ch.bi] !== undefined && state.chapterPageMap[ch.bi] <= state.currentPage){
+      chapterTitle = ch.text;
+    }
+  }
+  $pageIndicator.innerHTML = (chapterTitle ? escapeHtml(truncate(chapterTitle,16)) + ' · ' : '') + `<b>${cur}</b> / ${total}`;
+  const fill = el('progress-fill');
+  if(fill) fill.style.width = (cur/total*100) + '%';
+}
+function truncate(s,n){ return s.length>n ? s.slice(0,n)+'…' : s; }
+
+function updateNavButtons(){
+  $btnPrev.disabled = state.currentPage <= 0;
+  $btnNext.disabled = state.currentPage >= state.pages.length-1;
+}
+
+function currentPageAbsIndex(){
+  let acc = 0;
+  for(let p=0;p<state.currentPage;p++) acc += state.pages[p].length;
+  return acc;
+}
+
+function goPage(dir){
+  if(state.animating) return;
+  const next = state.currentPage + dir;
+  if(next < 0 || next > state.pages.length-1) return;
+  flipTo(next, dir > 0 ? 'next' : 'prev');
+}
+
+function flipTo(targetPage, dir){
+  state.animating = true;
+  const wasSpeaking = state.speaking;
+  if(wasSpeaking) stopSpeaking(true);
+
+  const clone = document.createElement('div');
+  clone.className = 'flip-clone flip-' + dir;
+  const inner = document.createElement('div');
+  inner.className = 'page-inner';
+  const contentClone = document.createElement('div');
+  contentClone.className = 'page-content';
+  contentClone.style.fontSize = 'var(--content-fs)';
+  contentClone.innerHTML = $pageContent.innerHTML;
+  inner.appendChild(contentClone);
+  clone.style.display = 'flex';
+  clone.style.justifyContent = 'center';
+  clone.appendChild(inner);
+  clone.style.setProperty('--page-w-inner', 'var(--page-w)');
+  inner.style.width = 'var(--page-w)';
+  inner.style.maxWidth = '720px';
+  inner.style.height = '100%';
+  $stage.appendChild(clone);
+
+  state.currentPage = targetPage;
+  renderCurrentPage();
+  saveLastPosition();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      clone.classList.add('animate');
+    });
+  });
+
+  let done = false;
+  const cleanup = () => {
+    if(done) return; done = true;
+    clone.remove();
+    state.animating = false;
+    if(wasSpeaking) speakCurrentPage(true);
+  };
+  clone.addEventListener('transitionend', cleanup, { once:true });
+  setTimeout(cleanup, 750);
+}
+
+el('btn-prev').addEventListener('click', () => goPage(-1));
+el('btn-next').addEventListener('click', () => goPage(1));
+el('tap-left').addEventListener('click', () => goPage(-1));
+el('tap-right').addEventListener('click', () => goPage(1));
+el('tap-center').addEventListener('click', toggleImmersive);
+
+document.addEventListener('keydown', (e) => {
+  if(!state.pages.length) return;
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown') goPage(1);
+  else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') goPage(-1);
+});
+
+function toggleImmersive(){
+  state.immersive = !state.immersive;
+  $toolbar.classList.toggle('immersive-hide', state.immersive);
+  $bottombar.classList.toggle('immersive-hide', state.immersive);
+  // 툴바/하단바가 실제로 다 접히거나 펼쳐진 뒤(transitionend) 늘어나거나 줄어든
+  // 공간에 맞춰 본문을 다시 나눈다. transitionend가 안 오는 경우를 대비해
+  // 타임아웃도 함께 둔다.
+  if(state.units.length){
+    let done = false;
+    const run = () => { if(done) return; done = true; paginateAndRestore(); };
+    $bottombar.addEventListener('transitionend', run, { once:true });
+    setTimeout(run, 500);
+  }
+}
+
+/* =========================================================
+   4. 목차
+========================================================= */
+function buildTOC(){
+  const list = el('toc-list');
+  list.innerHTML = '';
+  if(!state.chapters.length){
+    list.innerHTML = '<div class="drawer-empty">이 책에서는 별도의 장(章) 구분을 찾지 못했어요.<br>처음부터 끝까지 이어서 읽어보세요.</div>';
+    return;
+  }
+  state.chapters.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.className = 'toc-item';
+    btn.dataset.bi = ch.bi;
+    const pageNum = (state.chapterPageMap[ch.bi] ?? 0) + 1;
+    btn.innerHTML = `<span>${escapeHtml(ch.text)}</span><span class="dots"></span><span class="pg">${pageNum}</span>`;
+    btn.addEventListener('click', () => {
+      const p = state.chapterPageMap[ch.bi] ?? 0;
+      closeDrawers();
+      jumpToPage(p);
+    });
+    list.appendChild(btn);
+  });
+  updateTOCHighlight();
+}
+function updateTOCHighlight(){
+  const items = document.querySelectorAll('.toc-item');
+  let currentBi = null;
+  for(const ch of state.chapters){
+    if((state.chapterPageMap[ch.bi] ?? 0) <= state.currentPage) currentBi = ch.bi;
+  }
+  items.forEach(it => it.classList.toggle('current', Number(it.dataset.bi) === currentBi));
+}
+function jumpToPage(p){
+  if(p === state.currentPage) return;
+  const dir = p > state.currentPage ? 'next' : 'prev';
+  if(state.animating) return;
+  flipTo(Math.max(0, Math.min(p, state.pages.length-1)), dir);
+}
+
+el('btn-toc').addEventListener('click', () => openDrawer('toc-drawer'));
+el('btn-bookmarks').addEventListener('click', () => openDrawer('bookmark-drawer'));
+function openDrawer(id){
+  closeDrawers();
+  el(id).classList.add('show');
+  el('scrim').classList.add('show');
+}
+function closeDrawers(){
+  document.querySelectorAll('.drawer').forEach(d => d.classList.remove('show'));
+  el('scrim').classList.remove('show');
+}
+el('scrim').addEventListener('click', () => { closeDrawers(); closePopover(); });
+
+/* =========================================================
+   5. 책갈피 (window.storage 사용)
+========================================================= */
+async function loadBookmarksForCurrentBook(){
+  state.bookmarks = [];
+  try{
+    const res = await window.storage.get('bm:' + state.bookId, false);
+    if(res && res.value) state.bookmarks = JSON.parse(res.value);
+  } catch(e){ /* 저장된 책갈피 없음 */ }
+}
+async function saveBookmarks(){
+  try{ await window.storage.set('bm:' + state.bookId, JSON.stringify(state.bookmarks), false); }
+  catch(e){ console.warn('책갈피 저장 실패', e); }
+}
+async function saveLastPosition(){
+  if(!state.bookId) return;
+  try{ await window.storage.set('pos:' + state.bookId, JSON.stringify({ page: currentPageAbsIndex() }), false); }
+  catch(e){ /* 무시 */ }
+}
+
+function isCurrentPageBookmarked(){
+  const abs = currentPageAbsIndex();
+  return state.bookmarks.some(b => b.abs === abs);
+}
+function updateRibbon(){
+  $ribbon.classList.toggle('on', isCurrentPageBookmarked());
+}
+async function toggleBookmark(){
+  if(!state.pages.length) return;
+  const abs = currentPageAbsIndex();
+  const idx = state.bookmarks.findIndex(b => b.abs === abs);
+  if(idx >= 0){
+    state.bookmarks.splice(idx,1);
+  } else {
+    const groups = getUnitGroups(state.pages[state.currentPage]);
+    const snippet = (groups.find(g => g && g.length > 1) || groups[0] || '').slice(0,70);
+    state.bookmarks.push({ abs, snippet, ts: Date.now() });
+    state.bookmarks.sort((a,b)=>a.abs-b.abs);
+  }
+  await saveBookmarks();
+  updateRibbon();
+  renderBookmarkList();
+}
+$ribbon.style.pointerEvents = 'auto';
+$ribbon.style.cursor = 'pointer';
+$ribbon.addEventListener('click', (e) => { e.stopPropagation(); toggleBookmark(); });
+
+function renderBookmarkList(){
+  const list = el('bookmark-list');
+  list.innerHTML = '';
+  if(!state.bookmarks.length){
+    list.innerHTML = '<div class="drawer-empty">아직 책갈피가 없어요.<br>페이지 오른쪽 위의 리본을 눌러 표시해 보세요.</div>';
+    return;
+  }
+  state.bookmarks.slice().sort((a,b)=>a.abs-b.abs).forEach(bm => {
+    const item = document.createElement('div');
+    item.className = 'bm-item';
+    const date = new Date(bm.ts);
+    const dateStr = `${date.getMonth()+1}.${date.getDate()}`;
+    item.innerHTML = `
+      <div class="bm-ribbon-ico"></div>
+      <div class="bm-text">
+        <div class="bm-snippet">${escapeHtml(bm.snippet || '')}</div>
+        <div class="bm-meta">${dateStr}</div>
+      </div>
+      <button class="bm-del" aria-label="책갈피 삭제">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>`;
+    item.addEventListener('click', (e) => {
+      if(e.target.closest('.bm-del')) return;
+      const pageIdx = pageIndexForAbs(bm.abs);
+      closeDrawers();
+      jumpToPage(pageIdx);
+    });
+    item.querySelector('.bm-del').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      state.bookmarks = state.bookmarks.filter(b => b !== bm);
+      await saveBookmarks();
+      renderBookmarkList();
+      updateRibbon();
+    });
+    list.appendChild(item);
+  });
+}
+function pageIndexForAbs(abs){
+  let acc = 0;
+  for(let p=0;p<state.pages.length;p++){
+    if(acc + state.pages[p].length > abs) return p;
+    acc += state.pages[p].length;
+  }
+  return state.pages.length-1;
+}
+
+/* =========================================================
+   6. 글자 크기 · 다크 모드
+========================================================= */
+el('btn-aa').addEventListener('click', (e) => { e.stopPropagation(); openPopover(); });
+function openPopover(){
+  closeDrawers();
+  const pop = el('popover-aa');
+  const btn = el('btn-aa');
+  const r = btn.getBoundingClientRect();
+  pop.style.right = (window.innerWidth - r.right) + 'px';
+  pop.classList.add('show');
+  el('scrim').classList.add('show');
+}
+function closePopover(){ el('popover-aa').classList.remove('show'); }
+el('scrim').addEventListener('click', closePopover);
+
+el('fs-minus').addEventListener('click', () => changeFontSize(-1));
+el('fs-plus').addEventListener('click', () => changeFontSize(1));
+async function changeFontSize(delta){
+  state.fontSize = Math.max(15, Math.min(28, state.fontSize + delta));
+  document.documentElement.style.setProperty('--content-fs', state.fontSize + 'px');
+  el('fs-val').textContent = state.fontSize;
+  if(state.units.length) await paginateAndRestore();
+}
+
+el('toggle-dark').addEventListener('click', () => {
+  state.dark = !state.dark;
+  document.documentElement.setAttribute('data-theme', state.dark ? 'dark' : 'light');
+  el('toggle-dark').classList.toggle('on', state.dark);
+});
+
+function applyAppTheme(choice){
+  state.appTheme = choice;
+  document.documentElement.setAttribute('data-app-theme', choice);
+  document.querySelectorAll('#theme-seg .seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.themeChoice === choice);
+  });
+}
+document.querySelectorAll('#theme-seg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const choice = btn.dataset.themeChoice;
+    if(choice === state.appTheme) return;
+    applyAppTheme(choice);
+    try{ await window.storage.set('pref:appTheme', choice, false); } catch(e){ /* 저장 실패 시 무시 */ }
+    if(state.units.length) await paginateAndRestore();
+  });
+});
+(async function initAppTheme(){
+  try{
+    const res = await window.storage.get('pref:appTheme', false);
+    if(res && res.value) applyAppTheme(res.value);
+  } catch(e){ /* 저장된 테마 없음 - 기본값 유지 */ }
+})();
+
+el('rate-slider').addEventListener('input', (e) => {
+  state.rate = parseFloat(e.target.value);
+});
+
+// 화면 높이는 CSS의 100dvh(+ 세이프 에어리어 패딩)에 맡기고,
+// 자바스크립트는 그 값이 바뀔 때(사파리 주소창 접힘/펼침 등) 페이지만 다시 나눈다.
+const $app = el('app');
+
+window.addEventListener('resize', debounce(() => {
+  if(state.units.length) paginateAndRestore();
+}, 260));
+// iOS Safari는 주소창이 접히고 펼쳐질 때 window resize가 아니라 visualViewport의
+// resize로만 알려주는 경우가 많아 별도로 감지해 페이지를 다시 나눈다.
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', debounce(() => {
+    if(state.units.length) paginateAndRestore();
+  }, 260));
+}
+function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; }
+
+/* =========================================================
+   7. 읽어주기 (TTS)
+========================================================= */
+const synth = window.speechSynthesis;
+let koVoice = null;
+function pickVoice(){
+  if(!synth) return;
+  const voices = synth.getVoices();
+  koVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko')) || null;
+}
+if(synth){
+  pickVoice();
+  synth.onvoiceschanged = pickVoice;
+}
+
+// 안전장치: 혹시 최초 페이지 나누기 이후에 폰트 로딩이 뒤늦게 끝나는 경우를 대비해
+// 한 번 더 다시 나눈다(이미 정확했다면 사용자는 변화를 느끼지 못한다).
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(() => {
+    if(state.units.length) paginateAndRestore();
+  }).catch(() => {});
+}
+
+el('btn-tts').addEventListener('click', () => {
+  if(!state.pages.length || !synth) return;
+  if(state.speaking && !state.paused){ pauseSpeaking(); }
+  else if(state.speaking && state.paused){ resumeSpeaking(); }
+  else { speakCurrentPage(); }
+});
+
+function speakCurrentPage(continuing){
+  if(!synth) return;
+  synth.cancel();
+  const groups = getUnitGroups(state.pages[state.currentPage]).filter(Boolean);
+  if(!groups.length){ if(state.currentPage < state.pages.length-1){ goPage(1); } return; }
+  state.speaking = true;
+  state.paused = false;
+  el('btn-tts').classList.add('tts-playing','active');
+
+  let gi = 0;
+  function speakNext(){
+    if(!state.speaking) return;
+    if(gi >= groups.length){
+      if(state.currentPage < state.pages.length-1){
+        goPage(1);
+      } else {
+        stopSpeaking();
+      }
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(groups[gi]);
+    utter.lang = 'ko-KR';
+    utter.rate = state.rate;
+    if(koVoice) utter.voice = koVoice;
+    utter.onend = () => { gi++; speakNext(); };
+    utter.onerror = () => { gi++; speakNext(); };
+    synth.speak(utter);
+  }
+  speakNext();
+}
+function pauseSpeaking(){
+  if(synth && state.speaking){ synth.cancel(); state.paused = true; state.speaking = false; el('btn-tts').classList.remove('tts-playing','active'); }
+}
+function resumeSpeaking(){ speakCurrentPage(); }
+function stopSpeaking(silent){
+  state.speaking = false; state.paused = false;
+  if(synth) synth.cancel();
+  el('btn-tts').classList.remove('tts-playing','active');
+}
+
+/* =========================================================
+   초기화
+========================================================= */
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#popover-aa') && !e.target.closest('#btn-aa')) closePopover();
+});
+
+})();
+</script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.warn('서비스 워커 등록 실패', err));
+    });
+  }
+</script>
+</body>
+</html>
