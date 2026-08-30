@@ -30,7 +30,7 @@
     --danger:#a4453a;
     --radius: 3px;
     --toolbar-h: 56px;
-    --bottombar-h: 26px;
+    --bottombar-h: 13px;
     --page-w: min(720px, 100% - 48px);
     --content-fs: 19px;
     --content-lh: 1.78;
@@ -228,13 +228,13 @@
   }
   #bottombar.immersive-hide{ height:0; padding-top:0; padding-bottom:0; border-top-color:transparent; }
   .page-indicator-wrap{ display:flex; flex-direction:column; align-items:center; gap:3px; }
-  .page-indicator{ font-size:11px; color:var(--ink-soft); min-width:160px; text-align:center; letter-spacing:.02em; }
+  .page-indicator{ font-size:9px; color:var(--ink-soft); min-width:120px; text-align:center; letter-spacing:.02em; }
   .progress-track{ display:none; }
   html[data-app-theme="apple"] .progress-track{ display:block; width:130px; height:3px; border-radius:2px; background:var(--hairline); overflow:hidden; }
   .progress-fill{ height:100%; width:0%; background:var(--brass); border-radius:2px; transition:width .3s ease; }
   .page-indicator b{ color:var(--brass-deep); font-weight:600; }
-  .nav-arrow{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--ink); }
-  .nav-arrow svg{ width:13px; height:13px; }
+  .nav-arrow{ width:20px; height:13px; border-radius:0; display:flex; align-items:center; justify-content:center; color:var(--ink); }
+  .nav-arrow svg{ width:11px; height:11px; }
   .nav-arrow:hover{ background:var(--ivory-deep); }
   .nav-arrow:disabled{ opacity:.3; cursor:default; }
   .nav-arrow:disabled:hover{ background:none; }
