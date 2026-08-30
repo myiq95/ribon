@@ -865,10 +865,54 @@ async function paginateAndRestore(){
 function renderCurrentPage(){
   const slice = state.pages[state.currentPage] || [];
   $pageContent.innerHTML = renderUnitsHTML(slice);
+  fillPageIfUnderfull();
   updateIndicator();
   updateRibbon();
   updateNavButtons();
   updateTOCHighlight();
+}
+
+// 사전 계산(측정)이 타이밍 등의 이유로 살짝 어긋나 페이지 아래쪽에 빈 공간이
+// 남는 경우를 막기 위해, 실제 화면에 그려진 뒤 남는 공간이 있으면 다음 페이지의
+// 내용을 끌어와 채우고, 넘치면 되돌린다. 항상 "실제로 보이는 요소"를 기준으로
+// 판단하므로 측정 환경 차이로 인한 오차가 생기지 않는다.
+function fillPageIfUnderfull(){
+  let guard = 0;
+  let changed = false;
+  while(guard++ < 60 && state.currentPage < state.pages.length - 1){
+    if($pageContent.scrollHeight >= $pageContent.clientHeight - 2) break;
+    const nextPage = state.pages[state.currentPage + 1];
+    if(!nextPage || !nextPage.length) break;
+    if(nextPage[0].type === 'heading-start') break; // 챕터는 항상 새 페이지에서 시작
+    const moved = nextPage.shift();
+    state.pages[state.currentPage] = state.pages[state.currentPage].concat([moved]);
+    changed = true;
+    if(nextPage.length === 0){
+      state.pages.splice(state.currentPage + 1, 1);
+    }
+    $pageContent.innerHTML = renderUnitsHTML(state.pages[state.currentPage]);
+    if($pageContent.scrollHeight > $pageContent.clientHeight){
+      state.pages[state.currentPage] = state.pages[state.currentPage].slice(0, -1);
+      if(state.pages[state.currentPage + 1] && state.pages[state.currentPage + 1].length){
+        state.pages[state.currentPage + 1].unshift(moved);
+      } else {
+        state.pages.splice(state.currentPage + 1, 0, [moved]);
+      }
+      $pageContent.innerHTML = renderUnitsHTML(state.pages[state.currentPage]);
+      break;
+    }
+  }
+  if(changed) rebuildChapterPageMap();
+}
+
+function rebuildChapterPageMap(){
+  const map = {};
+  state.pages.forEach((page, idx) => {
+    if(page.length && page[0].type === 'heading-start'){
+      map[page[0].bi] = idx;
+    }
+  });
+  state.chapterPageMap = map;
 }
 
 function updateIndicator(){
