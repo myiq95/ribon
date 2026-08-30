@@ -609,7 +609,18 @@ async function loadFile(file){
     state.immersive = true;
     $toolbar.classList.add('immersive-hide');
     $bottombar.classList.add('immersive-hide');
-    await new Promise(r => setTimeout(r, 420));
+    await new Promise((resolve) => {
+      let done = false;
+      const run = (e) => {
+        if(e && e.propertyName && e.propertyName !== 'height') return;
+        if(done) return;
+        done = true;
+        $bottombar.removeEventListener('transitionend', run);
+        resolve();
+      };
+      $bottombar.addEventListener('transitionend', run);
+      setTimeout(run, 500);
+    });
     await paginateAndRestore();
   } catch(err){
     console.error(err);
@@ -953,13 +964,19 @@ function toggleImmersive(){
   state.immersive = !state.immersive;
   $toolbar.classList.toggle('immersive-hide', state.immersive);
   $bottombar.classList.toggle('immersive-hide', state.immersive);
-  // 툴바/하단바가 실제로 다 접히거나 펼쳐진 뒤(transitionend) 늘어나거나 줄어든
-  // 공간에 맞춰 본문을 다시 나눈다. transitionend가 안 오는 경우를 대비해
-  // 타임아웃도 함께 둔다.
+  // 툴바/하단바에는 높이·여백·테두리색 등 여러 속성이 동시에 트랜지션되는데,
+  // 그중 아무 속성이나 먼저 끝나는 시점에 다시 나누면 높이가 덜 정해진 채로
+  // 측정될 수 있다. 반드시 "height" 속성이 끝나는 시점만 기준으로 삼는다.
   if(state.units.length){
     let done = false;
-    const run = () => { if(done) return; done = true; paginateAndRestore(); };
-    $bottombar.addEventListener('transitionend', run, { once:true });
+    const run = (e) => {
+      if(e && e.propertyName && e.propertyName !== 'height') return;
+      if(done) return;
+      done = true;
+      $bottombar.removeEventListener('transitionend', run);
+      paginateAndRestore();
+    };
+    $bottombar.addEventListener('transitionend', run);
     setTimeout(run, 500);
   }
 }
